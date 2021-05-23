@@ -9,7 +9,7 @@ import {prepareDirForFile, fetchAndSaveFile} from './utils';
 import {existsSync} from 'fs';
 
 enum ClipboardType {
-    Unkown = -1, Html = 0, Text, Image
+    Unkown = -1, Html = 0, Text, Image, ImageFile,
 }
 
 /**
@@ -489,6 +489,23 @@ class Paster {
                 } else if(type == "UnicodeText" || type == "Text" || type=="HTML Format") {
                     content_type = ClipboardType.Text;
                     break;
+                } else if (type == "FileDrop"){
+                    let filename_array = this.getClipboardFilenameW();
+                    let include_pict_ext = false;
+                    const pict_ext_array = [".jpg", ".png", ".gif"];
+                    check_pict_ext:
+                    for (const filename of filename_array){
+                        for (const ext of pict_ext_array){
+                            if (filename.endsWith(ext)){
+                                include_pict_ext = true;
+                                break check_pict_ext;
+                            }
+                        }
+                    }
+                    if (include_pict_ext){
+                        content_type = ClipboardType.ImageFile;
+                    }
+                    break;
                 }
             }
         }
@@ -512,6 +529,25 @@ class Paster {
         });
         return ret;
     }
+
+    private static getClipboardFilenameW() {
+        var script = {
+            'win32': "win32_get_clipboard_content_filenamew.ps1"
+        };
+
+        let filename_array = [""];
+        let ret = this.runScript(script, [], (data) => {
+            console.log("getClipboardFilwnameW",data);
+            if (data == "no xclip") {
+                vscode.window.showInformationMessage('You need to install xclip command first.');
+                return;
+            }
+            filename_array = data.split(/\r\n|\n|\r/);
+        });
+//        return ret;
+        return filename_array;
+    }
+
 
     /**
      *

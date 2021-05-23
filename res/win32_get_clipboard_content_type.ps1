@@ -8,5 +8,3 @@ if ($dataObj) {
         [Console]::WriteLine($fmt)
     }
 }
-
-[Console]::WriteLine($content)
