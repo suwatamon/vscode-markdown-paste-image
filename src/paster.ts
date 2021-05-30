@@ -459,7 +459,7 @@ class Paster {
         return imagePath;
     }
 
-    private static getClipboardType(type_array) {
+    private static async getClipboardType(type_array) {
         let content_type = ClipboardType.Unkown;
         if(!type_array) {
             return content_type
@@ -490,7 +490,7 @@ class Paster {
                     content_type = ClipboardType.Text;
                     break;
                 } else if (type == "FileDrop"){
-                    let filename_array = this.getClipboardFilenameW();
+                    let filename_array = await this.getClipboardFilenameW();
                     let include_pict_ext = false;
                     const pict_ext_array = [".jpg", ".png", ".gif"];
                     check_pict_ext:
@@ -530,22 +530,23 @@ class Paster {
         return ret;
     }
 
-    private static getClipboardFilenameW() {
-        var script = {
-            'win32': "win32_get_clipboard_content_filenamew.ps1"
-        };
-
-        let filename_array = [""];
-        let ret = this.runScript(script, [], (data) => {
-            console.log("getClipboardFilwnameW",data);
-            if (data == "no xclip") {
-                vscode.window.showInformationMessage('You need to install xclip command first.');
-                return;
-            }
-            filename_array = data.split(/\r\n|\n|\r/);
+    private static getClipboardFilenameW(){
+        return new Promise<string[]>((resolve, _) => {
+            var script = {
+                'win32': "win32_get_clipboard_content_filenamew.ps1"
+            };
+    
+            let filename_array = [""];
+            this.runScript(script, [], (data) => {
+                console.log("getClipboardFilwnameW",data);
+                if (data == "no xclip") {
+                    vscode.window.showInformationMessage('You need to install xclip command first.');
+                    return;
+                }
+                filename_array = data.split(/\r\n|\n|\r/);
+                resolve(filename_array);
+            });
         });
-//        return ret;
-        return filename_array;
     }
 
 
