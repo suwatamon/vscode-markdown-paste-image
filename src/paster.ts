@@ -65,7 +65,10 @@ class Paster {
             case ClipboardType.Image:
                 Paster.pasteImage();
             break;
-            }
+            case ClipboardType.ImageFile:
+                Paster.pasteImageFile();
+            break; 
+        }
         });
 
         // If cannot get content type then try to read clipboard once
@@ -383,6 +386,116 @@ class Paster {
         });
     }
 
+    private static pasteImageFile() {
+        // get current edit file path
+        let editor = vscode.window.activeTextEditor;
+        if (!editor) return;
+
+        let fileUri = editor.document.uri;
+        if (!fileUri) return;
+        if (fileUri.scheme === 'untitled') {
+            vscode.window.showInformationMessage('Before pasting an image, you need to save the current edited file first.');
+            return;
+        }
+
+        // // get selection as image file name, need check
+        // var selection = editor.selection;
+        // var selectText = editor.document.getText(selection);
+
+        // if (selectText && !/^[^\\/:\*\?""<>|]{1,120}$/.test(selectText)) {
+        //     vscode.window.showInformationMessage('Your selection is not a valid file name!');
+        //     return;
+        // }
+
+        // get image destination path
+        let folderPathFromConfig = vscode.workspace.getConfiguration('MarkdownPaste').path;
+
+        folderPathFromConfig = this.replacePredefinedVars(folderPathFromConfig);
+
+        if (folderPathFromConfig && (folderPathFromConfig.length !== folderPathFromConfig.trim().length)) {
+            vscode.window.showErrorMessage('The specified path is invalid: "' + folderPathFromConfig + '"');
+            return;
+        }
+
+        let imgPath = folderPathFromConfig.replace(/\\/g, "/");
+        if (!path.isAbsolute(imgPath)){
+            imgPath = path.join(path.dirname(fileUri.fsPath),imgPath);
+        }
+        if(!prepareDirForFile(imgPath)) {
+            vscode.window.showErrorMessage('Make folder failed:' + imgPath);
+            return;
+        }
+
+
+        let exts = [".png", ".jpg", ".gif"];
+        let args = [imgPath].concat(exts);
+
+        const script = {
+            'win32':"win32_paste_clipboard_files.ps1",
+            "darwin": "",
+            "linux": ""
+        };
+
+        let ret = this.runScript(script, args, (pastedFilenames) => {
+            let arrFilenames = pastedFilenames.split(/\r\n|\n|\r/);
+            for (const pastedPath of arrFilenames){
+                // let imagePath = this.renderFilePath(editor.document.languageId, filePath, pastedPath, width, height);
+                let imagePath = `![](${pastedPath})`;
+
+                editor.edit(edit => {
+                    let current = editor.selection;
+
+                    if (current.isEmpty) {
+                        edit.insert(current.start, imagePath);
+                    } else {
+                        edit.replace(current, imagePath);
+                    }
+                });
+            }
+        });
+
+        // // save image and insert to current edit file
+        // this.saveClipboardImageToFileAndGetPath(imgPath, imagePath => {
+        //     if (!imagePath) return;
+        //     if (imagePath === 'no image') {
+        //         vscode.window.showInformationMessage('There is not an image in the clipboard.');
+        //         return;
+        //     }
+
+        //     imagePath = this.renderFilePath(editor.document.languageId, filePath, imagePath, width, height);
+
+        //     editor.edit(edit => {
+        //         let current = editor.selection;
+
+        //         if (current.isEmpty) {
+        //             edit.insert(current.start, imagePath);
+        //         } else {
+        //             edit.replace(current, imagePath);
+        //         }
+        //     });
+        // });
+
+
+        // let imagePath = this.getImagePath(
+        //     fileUri.fsPath, selectText, folderPathFromConfig);
+        // let fileNameLength = selectText ? selectText.length : 19; // yyyy-mm-dd-hh-mm-ss
+
+        // let silence = vscode.workspace.getConfiguration('MarkdownPaste').silence;
+        // if (silence) {
+            // Paster.saveImage(imagePath);
+        // } else {
+        //     let options: vscode.InputBoxOptions = {
+        //         prompt: "You can change the filename. The existing file will be overwritten!.",
+        //         value: imagePath,
+        //         placeHolder: "(e.g:../test/myimage.png)",
+        //         valueSelection: [imagePath.length - 4 - fileNameLength, imagePath.length - 4],
+        //     }
+        //     vscode.window.showInputBox(options).then(inputVal => {
+        //         Paster.saveImage(inputVal);
+        //     });
+        // }
+    }
+
     private static pasteImage() {
         // get current edit file path
         let editor = vscode.window.activeTextEditor;
@@ -459,7 +572,7 @@ class Paster {
         return imagePath;
     }
 
-    private static async getClipboardType(type_array) {
+    private static getClipboardType(type_array) {
         let content_type = ClipboardType.Unkown;
         if(!type_array) {
             return content_type
@@ -490,21 +603,22 @@ class Paster {
                     content_type = ClipboardType.Text;
                     break;
                 } else if (type == "FileDrop"){
-                    let filename_array = await this.getClipboardFilenameW();
-                    let include_pict_ext = false;
-                    const pict_ext_array = [".jpg", ".png", ".gif"];
-                    check_pict_ext:
-                    for (const filename of filename_array){
-                        for (const ext of pict_ext_array){
-                            if (filename.endsWith(ext)){
-                                include_pict_ext = true;
-                                break check_pict_ext;
-                            }
-                        }
-                    }
-                    if (include_pict_ext){
-                        content_type = ClipboardType.ImageFile;
-                    }
+                    // let filename_array = await this.getClipboardFilenameW();
+                    // let include_pict_ext = false;
+                    // const pict_ext_array = [".jpg", ".png", ".gif"];
+                    // check_pict_ext:
+                    // for (const filename of filename_array){
+                    //     for (const ext of pict_ext_array){
+                    //         if (filename.endsWith(ext)){
+                    //             include_pict_ext = true;
+                    //             break check_pict_ext;
+                    //         }
+                    //     }
+                    // }
+                    // if (include_pict_ext){
+                    //     content_type = ClipboardType.ImageFile;
+                    // }
+                    content_type = ClipboardType.ImageFile;
                     break;
                 }
             }
