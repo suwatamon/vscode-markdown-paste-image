@@ -438,21 +438,21 @@ class Paster {
 
         let ret = this.runScript(script, args, (pastedFilenames) => {
             let arrFilenames = pastedFilenames.split(/\r\n|\n|\r/);
+
+            let imagePath = "";
             for (const pastedPath of arrFilenames){
-                // let imagePath = this.renderFilePath(editor.document.languageId, filePath, pastedPath, width, height);
-                let imagePath = `![](${pastedPath})`;
-
-                editor.edit(edit => {
-                    let current = editor.selection;
-
-                    if (current.isEmpty) {
-                        edit.insert(current.start, imagePath);
-                    } else {
-                        edit.replace(current, imagePath);
-                    }
-                });
+                imagePath += `![](${pastedPath})\n`;
             }
-        });
+            editor.edit(edit => {
+                let current = editor.selection;
+
+                if (current.isEmpty) {
+                    edit.insert(current.start, imagePath);
+                } else {
+                    edit.replace(current, imagePath);
+                }
+            });
+    });
 
         // // save image and insert to current edit file
         // this.saveClipboardImageToFileAndGetPath(imgPath, imagePath => {
