@@ -16,6 +16,7 @@ foreach ($filename in [System.Windows.Forms.Clipboard]::GetFileDropList()) {
     }
 }
 
+New-Item -ItemType Directory -Force -Path $imagePath | Out-Null
 $destination_files = @();
 foreach ($fullname in $source_files) {
     $filename = [System.IO.Path]::GetFileName($fullname);

@@ -418,17 +418,13 @@ class Paster {
         }
 
         let imgPath = folderPathFromConfig.replace(/\\/g, "/");
+        const imgPathOrg = imgPath;
         if (!path.isAbsolute(imgPath)){
             imgPath = path.join(path.dirname(fileUri.fsPath),imgPath);
         }
-        if(!prepareDirForFile(imgPath)) {
-            vscode.window.showErrorMessage('Make folder failed:' + imgPath);
-            return;
-        }
 
-
-        let exts = [".png", ".jpg", ".gif"];
-        let args = [imgPath].concat(exts);
+        const exts = [".png", ".jpg", ".gif"];
+        const args = [imgPath].concat(exts);
 
         const script = {
             'win32':"win32_paste_clipboard_files.ps1",
@@ -440,7 +436,17 @@ class Paster {
             let arrFilenames = pastedFilenames.split(/\r\n|\n|\r/);
 
             let imagePath = "";
-            for (const pastedPath of arrFilenames){
+
+            const docPath = path.dirname(fileUri.fsPath);
+            const regex = new RegExp('^' + path.dirname(fileUri.fsPath));
+
+            for (let pastedPath of arrFilenames){
+                if (!path.isAbsolute(imgPathOrg)){
+                    // pastedPath = pastedPath.replace(regex, ".");
+                    pastedPath = (path.relative(docPath, pastedPath).replace(/\\/g, '/'));
+                    // pastedPath = encodeURI(path.relative(docPath, pastedPath).replace(/\\/g, '/'));
+                }
+        
                 imagePath += `![](${pastedPath})\n`;
             }
             editor.edit(edit => {
